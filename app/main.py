@@ -95,7 +95,11 @@ async def analyze_url_endpoint(payload: UrlScanRequest):
         scan_type="URL",
         hostname=raw_result.get("hostname"),
         resolved_ips=raw_result.get("resolvedIPs", []),
+        userinfo=raw_result.get("parsed", {}).get("userinfo"),
+        registrable_domain=raw_result.get("registrableDomain"),
+        infrastructure_provider=raw_result.get("infrastructureProvider"),
     )
+
     
     # 6. Grounded AI Explanation & MITRE RAG
     ai_analysis = generate_grounded_ai_analysis(
@@ -274,32 +278,68 @@ async def ai_assistant_chat(payload: AIChatRequest):
     ml = ctx.get("mlAnalysis", {})
     anomaly = ctx.get("anomalyAnalysis", {})
     ai = ctx.get("aiAnalysis", {})
+    metadata = ctx.get("metadata", {})
+    features = metadata.get("features", {})
 
-    if "why" in query or "reason" in query or "risk" in query:
+    if "userinfo" in query or "rfc" in query or "@" in query or "3986" in query:
         response = (
-            f"Target '{target}' was evaluated with a Risk Score of {score}/100 ({verdict}). "
-            f"The Supervised ML classifier detected {int(ml.get('probability', 0) * 100)}% {ml.get('prediction', 'risk')} probability. "
-            f"{len(indicators)} heuristic indicators were triggered, including: {', '.join([i.get('name', '') for i in indicators[:3]]) or 'baseline behavior'}."
+            "RFC 3986 Section 3.2.1 defines the URI Authority component as `[userinfo@]host[:port]`. "
+            "In phishing campaigns, adversaries abuse this specification by inserting brand lures and credential-mimicking strings "
+            "(such as 'unlimited-twitch-tv-user-for-free') before the `@` symbol. Web browsers ignore userinfo when routing HTTP/HTTPS requests "
+            "and establish the TLS handshake exclusively with the destination host after the `@` symbol. "
+            "CyberShield's parser decouples userinfo from the authority to detect this deception vector deterministically."
+        )
+    elif "cloudflare" in query or "tunnel" in query or "trycloudflare" in query or "infra" in query:
+        response = (
+            "Cloudflare Quick Tunnels (`trycloudflare.com`) and similar reverse tunneling platforms (e.g. Ngrok, Localtunnel) are legitimate "
+            "developer tools that expose local servers to the public internet without port forwarding. "
+            "CyberShield treats tunnel infrastructure as neutral context rather than an inherently malicious verdict. "
+            "However, when ephemeral tunnels are combined with deceptive userinfo lures and randomized subdomains, the multi-signal risk engine "
+            "elevates the threat verdict accordingly."
+        )
+    elif "why" in query or "reason" in query or "risk" in query:
+        ind_names = [f"• [{i.get('severity')}] {i.get('name')}" for i in indicators]
+        response = (
+            f"Target '{target}' was evaluated with a Risk Score of {score}/100 ({verdict}).\n\n"
+            f"Key Drivers:\n"
+            f"1. Supervised ML ({ml.get('model', 'Ensemble')}): {int(ml.get('probability', 0) * 100)}% {ml.get('prediction', 'risk')} probability.\n"
+            f"2. Isolation Forest Anomaly: {int(anomaly.get('anomalyScore', 0) * 100)}% ({anomaly.get('status', 'NORMAL')}).\n"
+            f"3. Active Threat Indicators ({len(indicators)} total):\n" + "\n".join(ind_names[:4])
         )
     elif "mitre" in query or "tactic" in query or "technique" in query:
         tactics = ai.get("mitreTactics", [])
         if tactics:
-            tac_strs = [f"{t.get('techniqueId')} ({t.get('techniqueName')}) - Tactic: {t.get('tactic')}" for t in tactics]
-            response = f"Relevant MITRE ATT&CK mappings identified for this target:\n• " + "\n• ".join(tac_strs)
+            tac_strs = [f"• {t.get('techniqueId')} ({t.get('techniqueName')}) — Tactic: {t.get('tactic')}\n  {t.get('description')}" for t in tactics]
+            response = "Authoritative MITRE ATT&CK mappings identified for this target:\n\n" + "\n\n".join(tac_strs)
         else:
             response = "No high-confidence MITRE ATT&CK techniques mapped to this specific clean sample."
+    elif "feature" in query or "ml" in query or "shap" in query:
+        top_f = ml.get("topFeatures", [])
+        if top_f:
+            f_strs = [f"• {f.get('feature')}: val={f.get('value')} (weight contribution: +{f.get('importance')} pts)" for f in top_f]
+            response = f"Top contributing ML features from {ml.get('model', 'Ensemble')}:\n\n" + "\n".join(f_strs)
+        else:
+            response = "Standard baseline feature vector with no anomalous feature weight spikes."
     elif "recommend" in query or "action" in query or "fix" in query:
         recs = ai.get("recommendations", ["Monitor asset telemetry."])
-        response = "Recommended SOC Actions:\n• " + "\n• ".join(recs)
+        response = "Recommended SOC Defensive Actions:\n• " + "\n• ".join(recs)
     elif "ioc" in query or "graph" in query or "ip" in query:
         graph = ctx.get("iocGraph", {})
         nodes = graph.get("nodes", [])
-        response = f"IOC Relationship graph contains {len(nodes)} identified entities across network and file artifacts."
+        links = graph.get("links", [])
+        response = (
+            f"IOC Relationship Graph Analysis:\n"
+            f"• Total Identified Entities: {len(nodes)}\n"
+            f"• Total Relational Links: {len(links)}\n"
+            f"Extracted entities include target endpoints, deceptive userinfo vectors, destination domains, and infrastructure providers."
+        )
     else:
         response = (
-            f"CyberShield AI Assistant: Target '{target}' is classified as {verdict} (Score: {score}/100). "
-            f"ML Model: {ml.get('model', 'Ensemble')} ({int(ml.get('probability', 0)*100)}% confidence). "
-            f"Anomaly metric: {int(anomaly.get('anomalyScore', 0)*100)}% ({anomaly.get('status', 'NORMAL')})."
+            f"CyberShield Grounded AI: Target '{target}' is classified as {verdict} (Risk Score: {score}/100).\n"
+            f"• Supervised ML: {ml.get('model', 'Ensemble')} ({int(ml.get('probability', 0)*100)}% confidence)\n"
+            f"• Isolation Anomaly: {int(anomaly.get('anomalyScore', 0)*100)}% ({anomaly.get('status', 'NORMAL')})\n"
+            f"• Indicators: {len(indicators)} triggered findings."
         )
 
     return {"response": response, "grounded": True}
+

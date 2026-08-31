@@ -32,6 +32,30 @@ MITRE_ATTACK_KNOWLEDGE = {
         "tactic": "Initial Access",
         "description": "Targeting loopback or RFC 1918 subnets attempts to pivot into internal cloud metadata or local microservices.",
     },
+    "URL-USERINFO-01": {
+        "techniqueId": "T1566.002",
+        "techniqueName": "Phishing: Spearphishing Link (Userinfo Deception)",
+        "tactic": "Initial Access",
+        "description": "Adversaries embed brand names or lure text in the URL authority userinfo (@ delimiter) to mislead victims about the destination domain.",
+    },
+    "URL-USERINFO-BRAND": {
+        "techniqueId": "T1036.005",
+        "techniqueName": "Masquerading: Match Legitimate Name or Location",
+        "tactic": "Defense Evasion",
+        "description": "Deceptive userinfo strings mimic trusted corporate domains and promotional login portals.",
+    },
+    "URL-SUBDOMAIN-ANOMALY": {
+        "techniqueId": "T1583.001",
+        "techniqueName": "Acquire Infrastructure: Domains & Dynamic Subdomains",
+        "tactic": "Resource Development",
+        "description": "Automated, high-entropy, or disposable subdomain generation facilitates short-lived phishing landing pages.",
+    },
+    "URL-INFRA-TUNNEL": {
+        "techniqueId": "T1572",
+        "techniqueName": "Protocol Tunneling / Reverse Port Forwarding",
+        "tactic": "Command and Control & Defense Evasion",
+        "description": "Ephemeral reverse tunneling platforms (e.g. Cloudflare Quick Tunnels, Ngrok) bypass traditional perimeter reputation filters.",
+    },
     "URL-004": {
         "techniqueId": "T1566.002",
         "techniqueName": "Phishing: Spearphishing Link (IDN Homograph)",

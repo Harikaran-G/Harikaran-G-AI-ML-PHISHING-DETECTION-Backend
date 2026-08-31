@@ -16,7 +16,15 @@ class IsolationAnomalyDetector:
         feature_count = len(features)
         
         # Check standard outlier thresholds
-        if features.get("hostname_entropy", 0) > 4.2 or features.get("path_entropy", 0) > 4.5:
+        if features.get("has_userinfo", 0) > 0:
+            deviations += 2.5
+        if features.get("userinfo_domain_like", 0) > 0 or features.get("userinfo_brand_keyword_count", 0) > 0:
+            deviations += 2.0
+        if features.get("subdomain_hyphen_count", 0) >= 3 or features.get("subdomain_length", 0) >= 20:
+            deviations += 1.8
+        if features.get("is_tunnel_service", 0) > 0:
+            deviations += 1.2
+        if features.get("hostname_entropy", 0) > 4.0 or features.get("path_entropy", 0) > 4.5:
             deviations += 1.8
         if features.get("has_ip_hostname", 0) > 0 or features.get("is_punycode", 0) > 0:
             deviations += 2.2
@@ -37,8 +45,8 @@ class IsolationAnomalyDetector:
         raw_anomaly = deviations / 6.0
         anomaly_score = round(min(1.0, max(0.0, raw_anomaly)), 4)
         
-        is_anomalous = anomaly_score >= 0.65
-        status = "ANOMALOUS" if is_anomalous else ("ELEVATED_VARIANCE" if anomaly_score >= 0.35 else "NORMAL_DISTRIBUTION")
+        is_anomalous = anomaly_score >= 0.60
+        status = "ANOMALOUS" if is_anomalous else ("ELEVATED_VARIANCE" if anomaly_score >= 0.30 else "NORMAL_DISTRIBUTION")
 
         return {
             "model": self.model_name,
