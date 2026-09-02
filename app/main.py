@@ -115,11 +115,11 @@ async def analyze_url_endpoint(payload: UrlScanRequest):
     ioc_graph = build_ioc_relationship_graph(
         target=payload.url,
         scan_type="URL",
-        hostname=raw_result.get("hostname"),
-        resolved_ips=raw_result.get("resolvedIPs", []),
-        userinfo=raw_result.get("parsed", {}).get("userinfo"),
-        registrable_domain=raw_result.get("registrableDomain"),
-        infrastructure_provider=raw_result.get("infrastructureProvider"),
+        hostname=str(raw_result.get("hostname") or ""),
+        resolved_ips=list(raw_result.get("resolvedIPs") or []),
+        userinfo=str((raw_result.get("parsed") or {}).get("userinfo") or ""),
+        registrable_domain=str(raw_result.get("registrableDomain") or ""),
+        infrastructure_provider=str(raw_result.get("infrastructureProvider") or ""),
     )
 
     
@@ -192,9 +192,9 @@ async def analyze_file_endpoint(file: UploadFile = File(...)):
     ioc_graph = build_ioc_relationship_graph(
         target=file.filename or "unknown.bin",
         scan_type="FILE",
-        sha256=raw_result.get("sha256"),
-        discovered_ips=metadata.get("discoveredIPs", []),
-        discovered_urls=metadata.get("discoveredURLs", []),
+        sha256=str(raw_result.get("sha256") or ""),
+        discovered_ips=list(metadata.get("discoveredIPs") or []),
+        discovered_urls=list(metadata.get("discoveredURLs") or []),
     )
     
     # 5. Grounded AI Explanation & MITRE RAG
@@ -261,9 +261,9 @@ async def analyze_apk_endpoint(file: UploadFile = File(...)):
     ioc_graph = build_ioc_relationship_graph(
         target=file.filename or "sample.apk",
         scan_type="APK",
-        sha256=raw_result.get("sha256"),
-        package_name=metadata.get("packageName"),
-        discovered_urls=metadata.get("discoveredURLs", []),
+        sha256=str(raw_result.get("sha256") or ""),
+        package_name=str(metadata.get("packageName") or ""),
+        discovered_urls=list(metadata.get("discoveredURLs") or []),
     )
     
     # 5. Grounded AI Explanation & MITRE RAG
