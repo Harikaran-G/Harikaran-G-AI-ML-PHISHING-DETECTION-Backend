@@ -298,7 +298,7 @@ async def analyze_url_target(raw_url: str) -> Dict[str, Any]:
     try:
         addr_info = socket.getaddrinfo(hostname, None)
         for item in addr_info:
-            ip = item[4][0]
+            ip = str(item[4][0])
             if ip not in resolved_ips:
                 resolved_ips.append(ip)
             if is_private_ip(ip):

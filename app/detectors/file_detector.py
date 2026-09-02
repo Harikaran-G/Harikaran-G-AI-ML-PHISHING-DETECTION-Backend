@@ -188,15 +188,21 @@ def analyze_file_content(filename: str, content: bytes) -> Dict[str, Any]:
     if is_pe:
         try:
             pe = pefile.PE(data=content)
+            file_header = getattr(pe, "FILE_HEADER", None)
+            machine = getattr(file_header, "Machine", 0) if file_header else 0
+            num_sections = getattr(file_header, "NumberOfSections", 0) if file_header else 0
+            timestamp = getattr(file_header, "TimeDateStamp", 0) if file_header else 0
+            pe_sections = getattr(pe, "sections", [])
+
             pe_details = {
-                "machine": hex(pe.FILE_HEADER.Machine),
-                "sections": [s.Name.decode('utf-8', errors='ignore').strip('\x00') for s in pe.sections],
-                "numberOfSections": pe.FILE_HEADER.NumberOfSections,
-                "timestamp": pe.FILE_HEADER.TimeDateStamp
+                "machine": hex(machine) if isinstance(machine, int) else str(machine),
+                "sections": [s.Name.decode('utf-8', errors='ignore').strip('\x00') for s in pe_sections],
+                "numberOfSections": num_sections,
+                "timestamp": timestamp
             }
             # Check suspicious section names
             suspicious_sec_names = {".upx0", ".upx1", ".themida", ".vmp", ".aspack"}
-            for sec in pe.sections:
+            for sec in pe_sections:
                 sec_name = sec.Name.decode('utf-8', errors='ignore').strip('\x00').lower()
                 if sec_name in suspicious_sec_names:
                     indicators.append({

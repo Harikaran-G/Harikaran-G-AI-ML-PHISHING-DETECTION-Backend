@@ -1,17 +1,17 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 def build_ioc_relationship_graph(
     target: str,
     scan_type: str,
-    sha256: str = None,
-    discovered_ips: List[str] = None,
-    discovered_urls: List[str] = None,
-    hostname: str = None,
-    resolved_ips: List[str] = None,
-    package_name: str = None,
-    userinfo: str = None,
-    registrable_domain: str = None,
-    infrastructure_provider: str = None,
+    sha256: Optional[str] = None,
+    discovered_ips: Optional[List[str]] = None,
+    discovered_urls: Optional[List[str]] = None,
+    hostname: Optional[str] = None,
+    resolved_ips: Optional[List[str]] = None,
+    package_name: Optional[str] = None,
+    userinfo: Optional[str] = None,
+    registrable_domain: Optional[str] = None,
+    infrastructure_provider: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Constructs an IOC relationship graph linking targets, userinfo spoofs, base domains,

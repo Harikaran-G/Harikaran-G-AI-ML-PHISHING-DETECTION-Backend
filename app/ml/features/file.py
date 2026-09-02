@@ -1,5 +1,5 @@
 import math
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 def extract_file_features(
     file_size: int,
@@ -8,7 +8,7 @@ def extract_file_features(
     discovered_ips_count: int,
     discovered_urls_count: int,
     has_double_ext: bool,
-    pe_details: Dict[str, Any] = None,
+    pe_details: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, float]:
     """
     Extracts numerical feature vector for static File ML analysis.

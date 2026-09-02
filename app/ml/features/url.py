@@ -1,12 +1,12 @@
 import math
 import re
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from app.detectors.url_detector import parse_url_components, KNOWN_BRAND_DOMAINS, DECEPTIVE_TERMS, calculate_str_entropy, brand_in_text
 
 def calculate_entropy(text: str) -> float:
     return calculate_str_entropy(text)
 
-def extract_url_features(url: str, http_metadata: Dict[str, Any] = None) -> Dict[str, float]:
+def extract_url_features(url: str, http_metadata: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
     """
     Extracts high-dimensional numerical feature vector for Supervised ML and Anomaly detection.
     Covers lexical, structural, userinfo deception, brand impersonation, and infrastructure signals.

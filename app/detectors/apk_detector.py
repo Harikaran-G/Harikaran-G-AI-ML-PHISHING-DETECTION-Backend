@@ -2,9 +2,12 @@ import io
 import zipfile
 from typing import Dict, Any, List
 try:
-    from androguard.core.apk import APK
+    from androguard.core.apk import APK  # pyright: ignore[reportMissingImports]
 except ImportError:
-    from androguard.core.bytecodes.apk import APK
+    try:
+        from androguard.core.bytecodes.apk import APK  # type: ignore[import] # pyright: ignore[reportMissingImports]
+    except Exception:
+        APK = None  # type: ignore
 
 def analyze_apk_content(filename: str, content: bytes) -> Dict[str, Any]:
     """
@@ -15,7 +18,9 @@ def analyze_apk_content(filename: str, content: bytes) -> Dict[str, Any]:
     metadata = {}
 
     try:
-        apk = APK(io.BytesIO(content), raw=True)
+        if APK is None:
+            raise RuntimeError("Androguard is not available")
+        apk = APK(content, raw=True)  # type: ignore[arg-type]
         package_name = apk.get_package() or "Unknown.Package"
         app_name = apk.get_app_name() or filename
         version_code = apk.get_androidversion_code() or "1"
