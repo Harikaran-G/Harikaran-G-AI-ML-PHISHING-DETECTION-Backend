@@ -1,7 +1,15 @@
+import os
+import json
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 from app.detectors.file_detector import analyze_file_content
 from app.detectors.url_detector import analyze_url_target
@@ -31,13 +39,27 @@ app = FastAPI(
     version="2.0.0",
 )
 
+# Parse CORS Origins from Environment
+cors_env = os.getenv("CORS_ORIGINS")
+allowed_origins = ["*"]
+if cors_env:
+    try:
+        parsed = json.loads(cors_env)
+        if isinstance(parsed, list):
+            allowed_origins = parsed
+    except Exception:
+        allowed_origins = [o.strip() for o in cors_env.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+MAX_FILE_SIZE_BYTES = int(os.getenv("MAX_FILE_SIZE_BYTES", "52428800"))
+MAX_APK_SIZE_BYTES = int(os.getenv("MAX_APK_SIZE_BYTES", "104857600"))
 
 class UrlScanRequest(BaseModel):
     url: str
@@ -136,6 +158,11 @@ async def analyze_url_endpoint(payload: UrlScanRequest):
 @app.post("/analyze/file")
 async def analyze_file_endpoint(file: UploadFile = File(...)):
     content = await file.read()
+    if len(content) > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Uploaded file exceeds maximum allowed size ({MAX_FILE_SIZE_BYTES // (1024 * 1024)}MB)."
+        )
     raw_result = analyze_file_content(file.filename or "unknown.bin", content)
     
     metadata = raw_result.get("metadata", {})
@@ -209,6 +236,11 @@ async def analyze_file_endpoint(file: UploadFile = File(...)):
 @app.post("/analyze/apk")
 async def analyze_apk_endpoint(file: UploadFile = File(...)):
     content = await file.read()
+    if len(content) > MAX_APK_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Uploaded APK package exceeds maximum allowed size ({MAX_APK_SIZE_BYTES // (1024 * 1024)}MB)."
+        )
     raw_result = analyze_apk_content(file.filename or "sample.apk", content)
     
     metadata = raw_result.get("metadata", {})
